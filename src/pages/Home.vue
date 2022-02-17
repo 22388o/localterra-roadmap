@@ -12,9 +12,9 @@
         />
       </router-link>
       <nav>
-        <button class="primary">
+        <!--<button class="primary">
           <router-link to="/lbp">webapp</router-link>
-        </button>
+        </button>-->
       </nav>
     </header>
 
