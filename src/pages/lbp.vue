@@ -79,6 +79,7 @@ import InfoCard from "@/components/InfoCard.vue";
 import SwapForm from "@/components/SwapForm.vue";
 import ModalLoading from "@/components/ModalLoading";
 import ModalFeedback from "@/components/ModalFeedback";
+import { controller } from '@terra-money/wallet-controller';
 
 export default defineComponent({
   name: "lbp",
@@ -89,11 +90,18 @@ export default defineComponent({
     InfoCard,
     SwapForm,
   },
-  mounted: function () {
+  data() {
+    return {
+      walletConnection: {}
+    }
+  },
+  mounted: async function () {
     this.fetchCurrentPair();
     this.$nextTick(function () {
       setInterval(async () => await this.fetchCurrentPair(), 30000);
     });
+    let connTypes = await controller.availableConnectTypes();
+    console.log('connTypes', connTypes);
   },
   computed: mapGetters([
     "walletAddress",
