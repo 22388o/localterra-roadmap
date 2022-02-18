@@ -3,83 +3,87 @@
     <title>Local Terra LBP</title>
   </head>
   <body>
-    <header class="page-layout">
-      <router-link to="/">
-        <img
+  <header class="page-layout">
+    <router-link to="/">
+      <img
           src="@/assets/logo-horizontal-dark.svg"
           alt="Local Terra Logo"
           class="logo"
-        />
-      </router-link>
-      <nav>
-        <a href="#">
-          <button class="wallet" @click="initWallet()">
-            <p v-if="walletAddress.length > 0">
-              {{ formatAddress(walletAddress) }}
-            </p>
-            <p v-else>connect</p>
-            <img src="@/assets/ic_wallet.svg" alt="Connect your wallet" />
-          </button>
-        </a>
-      </nav>
-    </header>
+      />
+    </router-link>
+    <nav>
+      <a href="#">
+        <button class="wallet" @click="connectWalletController()">
+          <p v-if="walletAddress.length > 0">
+            {{ formatAddress(walletAddress) }}
+          </p>
+          <p v-else>connect</p>
+          <img src="@/assets/ic_wallet.svg" alt="Connect your wallet"/>
+        </button>
+      </a>
+    </nav>
+  </header>
 
-    <main>
-      <section class="lbp-info page-layout">
-        <InfoCard
+  <main>
+    <section class="lbp-info page-layout">
+      <InfoCard
           class="text-primary"
           :loading="tokenPrice.loading"
           :label="'LOCAL Price'"
           :value="'$' + formatTokenPrice(tokenPrice.value)"
-        />
-        <InfoCard
+      />
+      <InfoCard
           :label="'Tokens Remaining'"
           :loading="tokensRemaining.loading"
           :value="formatTokenAmount(tokensRemaining.value.amount, 0)"
           :more="tokensRemaining.value.percentage + '%'"
-        />
-        <InfoCard
+      />
+      <InfoCard
           :label="'Current LBP Weight'"
           :loading="currentLbpWeight.loading"
           :value="currentLbpWeight.value"
-        />
-        <InfoCard
+      />
+      <InfoCard
           :label="'Time Remaining'"
           :loading="secondsRemaining.loading"
           :value="durationString(secondsRemaining.value)"
-        />
-      </section>
+      />
+    </section>
 
-      <section class="wrap-content page-layout">
-        <SwapForm />
-        <Chart :title="'LOCAL Chart'" />
-      </section>
+    <section class="wrap-content page-layout">
+      <SwapForm/>
+      <Chart :title="'LOCAL Chart'"/>
+    </section>
 
-      <ModalLoading :loading="pageLoading" />
+    <ModalLoading :loading="pageLoading"/>
 
-      <ModalFeedback
+    <ModalFeedback
         :modalFeedback="pageFeedback"
         @close="pageFeedback.dismiss()"
-      />
-    </main>
+    />
+  </main>
   </body>
 </template>
 
 <script>
-import { defineComponent } from "vue";
-import { formatAddress, formatAmount } from "@/shared";
-import { mapActions, mapGetters } from "vuex";
+import {defineComponent} from "vue";
+import {formatAddress, formatAmount} from "@/shared";
+import {mapActions, mapGetters} from "vuex";
 import {
   formatTokenAmount,
   formatTokenPrice,
 } from "@/helpers/number_formatters";
-import { durationString } from "@/helpers/time_formatters";
+import {durationString} from "@/helpers/time_formatters";
 import Chart from "@/components/Chart";
 import InfoCard from "@/components/InfoCard.vue";
 import SwapForm from "@/components/SwapForm.vue";
 import ModalLoading from "@/components/ModalLoading";
 import ModalFeedback from "@/components/ModalFeedback";
-import { controller } from '@terra-money/wallet-controller';
+import {initController} from '@/walletProviderController';
+// import {combineLatest} from 'rxjs';
+// import {WalletStatus} from "@terra-money/wallet-controller";
+
+//const controller = getController();
 
 export default defineComponent({
   name: "lbp",
@@ -92,16 +96,64 @@ export default defineComponent({
   },
   data() {
     return {
-      walletConnection: {}
+      walletConnection: {},
+      controller: {}
     }
   },
   mounted: async function () {
-    this.fetchCurrentPair();
-    this.$nextTick(function () {
+    await this.fetchCurrentPair();
+    await this.$nextTick(function () {
       setInterval(async () => await this.fetchCurrentPair(), 30000);
     });
-    let connTypes = await controller.availableConnectTypes();
-    console.log('connTypes', connTypes);
+    this.controller = await initController()
+    this.controller.availableConnectTypes().subscribe({
+      next(x) {
+        console.log('got value', x)
+      },
+      error(err) {
+        console.error('something wrong occurred: ' + err);
+      },
+      complete() {
+        console.log('done');
+      }
+    })
+    this.controller.availableConnections().subscribe({
+      next(x) {
+        console.log('got connections', x)
+      },
+      error(err) {
+        console.error('something wrong occurred: ' + err);
+      },
+      complete() {
+        console.log('done');
+      }
+    })
+    /*
+    this.subscription = combineLatest([
+      controller.availableConnectTypes,
+      controller.availableInstallTypes,
+      controller.availableConnections,
+      controller.states,
+    ]).subscribe(
+        ([
+           _availableConnectTypes,
+           _availableInstallTypes,
+           _availableConnections,
+           _states,
+         ]) => {
+          console.log('_availableInstallTypes', _availableInstallTypes);
+          console.log('availableConnectTypes', _availableConnectTypes);
+          console.log('availableConnectTypes', _availableConnectTypes);
+          console.log('availableConnections', _availableConnections);
+          console.log('states', _states);
+          let supportFeatures =
+              _states.status === WalletStatus.WALLET_CONNECTED
+                  ? Array.from(_states.supportFeatures)
+                  : [];
+          console.log('supportFeatures', supportFeatures);
+        },
+    );
+     */
   },
   computed: mapGetters([
     "walletAddress",
@@ -119,6 +171,9 @@ export default defineComponent({
     formatAddress,
     formatTokenAmount,
     formatTokenPrice,
+    connectWalletController: function () {
+      this.controller.connect("EXTENSION")
+    }
   },
 });
 </script>
