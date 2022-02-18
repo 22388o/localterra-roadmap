@@ -1,5 +1,5 @@
 import { FACTORY_CONTRACT, PAIR_CONTRACT } from "@/constants";
-import { connectExtension } from "@/terra/extension";
+// import { connectExtension } from "@/terra/extension";
 import { buildClient } from "@/terra/client";
 import {
   getBalance,
@@ -29,6 +29,7 @@ import {
   errorFeedback,
   successFeedback,
 } from "@/components/ModalFeedback";
+import {initController} from "@/walletProviderController";
 
 let testnet = buildClient({
   URL: "https://bombay-lcd.terra.dev",
@@ -140,37 +141,53 @@ const mutations = {
   setTokenAddress: (state, tokenAddress) => (state.tokenAddress = tokenAddress),
 };
 
+let controller;
 const actions = {
   async initWallet({ commit, dispatch }) {
     try {
-      const { wallet, info } = await connectExtension();
-      terra = buildClient({
-        URL: info.lcd,
-        chainID: info.chainID,
+      controller = await initController()
+      this.controller.states().subscribe({
+        next(x) {
+          commit("setWalletState", x);
+          commit("setWalletAddress", x.wallets[0].terraAddress)
+          terra = buildClient({
+            URL: x.network.lcd,
+            chainID: x.network.chainID,
+          });
+        },
+        error() {
+          dispatch("onConnectWalletError")
+        },
       });
+      //TODO if is mobileeee
+      controller.connect("EXTENSION")
       commit("setPageLoading", {
         isLoading: true,
         label: "Connecting wallet...",
       });
-      commit("setWalletAddress", wallet.address);
-      const balance = await dispatch("fetchBalance");
-      const tokenBalance = await dispatch("fetchTokenBalance");
-      commit("setBalance", balance);
-      commit("setTokenBalance", tokenBalance);
-      dispatch("fetchCurrentPair");
     } catch (e) {
-      commit("setWalletAddress", "");
-      commit(
-        "setPageFeedback",
-        errorFeedback({
-          title: "Ooops...",
-          message:
-            "We had a problem connecting to your wallet. Make sure it is connected to the right network.",
-        })
-      );
+      dispatch("onConnectWalletError")
     } finally {
       commit("setPageLoading", { isLoading: false });
     }
+  },
+  async onConnectWalletError({commit}) {
+    commit("setWalletAddress", "");
+    commit(
+      "setPageFeedback",
+      errorFeedback({
+        title: "Ooops...",
+        message:
+          "We had a problem connecting to your wallet. Make sure it is connected to the right network.",
+      })
+    );
+  },
+  async refreshWallet({dispatch, commit}) {
+    const balance = await dispatch("fetchBalance");
+    const tokenBalance = await dispatch("fetchTokenBalance");
+    commit("setBalance", balance);
+    commit("setTokenBalance", tokenBalance);
+    dispatch("fetchCurrentPair");
   },
   async updateBalance({ dispatch, commit }) {
     const balance = await dispatch("fetchBalance");
