@@ -18,7 +18,7 @@
           class="logo"
         />
       </router-link>
-      <nav v-if="this.isLbpRunning">
+      <nav>
         <a href="#">
           <button class="wallet" @click="initWallet()">
             <p v-if="walletAddress.length > 0">
@@ -31,29 +31,13 @@
       </nav>
     </header>
 
-    <main v-if="this.isLbpRunning">
+    <main>
       <section class="lbp-info page-layout">
         <InfoCard
           class="text-primary"
           :loading="tokenPrice.loading"
           :label="'LOCAL Price'"
           :value="'$' + formatTokenPrice(tokenPrice.value)"
-        />
-        <InfoCard
-          :label="'Tokens Remaining'"
-          :loading="tokensRemaining.loading"
-          :value="formatTokenAmount(tokensRemaining.value.amount, 0)"
-          :more="tokensRemaining.value.percentage + '%'"
-        />
-        <InfoCard
-          :label="'Current LBP Weight'"
-          :loading="currentLbpWeight.loading"
-          :value="currentLbpWeight.value"
-        />
-        <InfoCard
-          :label="'Time Remaining'"
-          :loading="secondsRemaining.loading"
-          :value="durationString(secondsRemaining.value)"
         />
       </section>
 
@@ -73,14 +57,6 @@
         :show="showDisclaimer && !closedDisclaimer"
         @close="hideDisclaimer"
       />
-    </main>
-    <main v-else>
-      <section class="wrap-content page-layout lbp-over-wrap">
-        <div class="card lbp-over-item">
-          <h2 v-if="willStartSoon">The LBP will start soon! :)</h2>
-          <h2 v-if="alreadyFinished">The LBP is over! :(</h2>
-        </div>
-      </section>
     </main>
   </body>
 </template>
@@ -141,14 +117,9 @@ export default defineComponent({
     ...mapGetters([
       "walletAddress",
       "tokenPrice",
-      "tokensRemaining",
-      "currentLbpWeight",
-      "secondsRemaining",
       "pageLoading",
       "pageFeedback",
       "isLbpRunning",
-      "lbpStartTime",
-      "lbpEndTime",
     ]),
     showDisclaimer: function () {
       let show = localStorage.showDisclaimer;

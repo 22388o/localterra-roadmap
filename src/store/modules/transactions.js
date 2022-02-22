@@ -1,8 +1,6 @@
-import { FACTORY_CONTRACT, PAIR_CONTRACT } from "@/constants";
 import { buildClient } from "@/terra/client";
 import {
   getBalance,
-  getLBPs,
   getPool,
   getReverseSimulation,
   getSimulation,
@@ -54,9 +52,6 @@ const state = {
     transaction: undefined,
   },
   isConnected: false,
-  isLbpRunning: true,
-  lbpStartTime: undefined,
-  lbpEndTime: undefined,
   pageFeedback: baseFeedback(),
   walletAddress: "",
   balance: 0,
@@ -75,9 +70,6 @@ const state = {
 
 const getters = {
   walletAddress: (state) => state.walletAddress,
-  isLbpRunning: (state) => state.isLbpRunning,
-  lbpStartTime: (state) => state.lbpStartTime,
-  lbpEndTime: (state) => state.lbpEndTime,
   balance: (state) =>
     formatTokenAmount(state.walletAddress.length > 0 ? state.balance : 0, 6),
   tokenBalance: (state) =>
@@ -122,9 +114,6 @@ const getters = {
 };
 
 const mutations = {
-  setIsLbpRunning: (state, isLbpRunning) => (state.isLbpRunning = isLbpRunning),
-  setLbpStartTime: (state, lbpStartTime) => (state.lbpStartTime = lbpStartTime),
-  setLbpEndTime: (state, lbpEndTime) => (state.lbpEndTime = lbpEndTime),
   setPageLoading: (state, pageLoading) => (state.pageLoading = pageLoading),
   setPageFeedback: (state, pageFeedback) => (state.pageFeedback = pageFeedback),
   setWalletAddress: (state, walletAddress) =>
@@ -215,8 +204,8 @@ const actions = {
     const walletAddress = getters.walletAddress;
     if (walletAddress.length !== 0) {
       const pair = getters.currentPair;
-      const nativeToken = nativeTokenFromPair(pair.asset_infos).info
-        .native_token.denom;
+      const nativeToken = nativeTokenFromPair(pair.asset_infos).native_token
+        .denom;
       return await getBalance(terra, nativeToken, walletAddress);
     }
   },
@@ -224,37 +213,34 @@ const actions = {
     const walletAddress = getters.walletAddress;
     if (walletAddress.length !== 0) {
       const pair = getters.currentPair;
-      const tokenAddress = saleAssetFromPair(pair.asset_infos).info.token
+      const tokenAddress = saleAssetFromPair(pair.asset_infos).token
         .contract_addr;
       return await getTokenBalance(terra, tokenAddress, walletAddress);
     }
   },
   async fetchCurrentPair({ commit, dispatch }) {
-    const lbps = (await getLBPs(terra, FACTORY_CONTRACT)).filter(
-      (lbp) => lbp.contract_addr === PAIR_CONTRACT
-    );
-    const currentTime = Math.floor(Date.now() / 1000);
-    const currentPair = lbps.find(
-      (lbp) => lbp.start_time <= currentTime && lbp.end_time > currentTime
-    );
-
+    const currentPair = {
+      asset_infos: [
+        {
+          token: {
+            contract_addr: "terra1vchw83qt25j89zqwdpmdzj722sqxthnckqzxxp",
+          },
+        },
+        {
+          native_token: {
+            denom: "uusd",
+          },
+        },
+      ],
+      token_code_id: 1796,
+      factory_addr: "terra1fnywlw4edny3vw44x04xd67uzkdqluymgreu7g",
+      init_params: null,
+    };
     commit("setCurrentPair", currentPair);
-    commit("setLbpStartTime", lbps[0].start_time);
-    commit("setLbpEndTime", lbps[0].end_time);
-    if (currentPair != null) {
-      commit("setIsLbpRunning", true);
-      commit(
-        "setTokenAddress",
-        saleAssetFromPair(currentPair.asset_infos).info.token.contract_addr
-      );
-      dispatch("fetchSaleTokenInfo");
-      dispatch("fetchWeights");
-      dispatch("fetchSecondsRemaining");
-      dispatch("fetchTokenPrice");
-      dispatch("fetchMaxSwapFee");
-    } else {
-      commit("setIsLbpRunning", false);
-    }
+    commit("setTokenAddress", currentPair.asset_infos[0].token.contract_addr);
+    dispatch("fetchSaleTokenInfo");
+    dispatch("fetchTokenPrice");
+    dispatch("fetchMaxSwapFee");
   },
   async fetchSecondsRemaining({ getters, commit }) {
     const pair = getters.currentPair;
@@ -267,7 +253,7 @@ const actions = {
   },
   async fetchSaleTokenInfo({ getters, commit, dispatch }) {
     const pair = getters.currentPair;
-    const saleTokenAddress = saleAssetFromPair(pair.asset_infos).info.token
+    const saleTokenAddress = saleAssetFromPair(pair.asset_infos).token
       .contract_addr;
     const saleTokenInfo = await getTokenInfo(terra, saleTokenAddress);
     commit("setSaleTokenInfo", saleTokenInfo);
@@ -275,7 +261,7 @@ const actions = {
   },
   async fetchWeights({ getters, commit }) {
     const pair = getters.currentPair;
-    const nativeToken = nativeTokenFromPair(pair.asset_infos).info.native_token
+    const nativeToken = nativeTokenFromPair(pair.asset_infos).native_token
       .denom;
     const [nativeTokenWeight, saleTokenWeight] = await getWeights(
       terra,
@@ -304,6 +290,7 @@ const actions = {
   },
   async fetchTokenPrice({ dispatch, commit }) {
     const oneToken = new Dec(1).mul(10 ** 6).toInt();
+    console.log("start reverse simulation");
     const reverseSimulationResult = await dispatch(
       "getReverseSimulation",
       oneToken
@@ -349,7 +336,8 @@ const actions = {
   },
   async getSimulation({ getters }, amount) {
     const pair = getters.currentPair;
-    const assetInfo = nativeTokenFromPair(pair.asset_infos).info;
+    const assetInfo = nativeTokenFromPair(pair.asset_infos);
+    console.log(assetInfo);
     const simulation = await getSimulation(
       terra,
       pair.contract_addr,
@@ -362,7 +350,9 @@ const actions = {
   },
   async getReverseSimulation({ getters }, amount) {
     const pair = getters.currentPair;
-    const assetInfo = saleAssetFromPair(pair.asset_infos).info;
+    const assetInfo = saleAssetFromPair(pair.asset_infos);
+
+    console.log(assetInfo);
     const simulation = await getReverseSimulation(
       terra,
       pair.contract_addr,

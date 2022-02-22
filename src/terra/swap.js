@@ -53,7 +53,7 @@ export function buildSwapFromNativeTokenMsg({
   walletAddress,
   intAmount,
 }) {
-  const denom = nativeTokenFromPair(pair.asset_infos).info.native_token.denom;
+  const denom = nativeTokenFromPair(pair.asset_infos).native_token.denom;
 
   return new MsgExecuteContract(
     walletAddress,
@@ -87,8 +87,7 @@ export function buildSwapFromContractTokenMsg({
   walletAddress,
   intAmount,
 }) {
-  const tokenAddr = saleAssetFromPair(pair.asset_infos).info.token
-    .contract_addr;
+  const tokenAddr = saleAssetFromPair(pair.asset_infos).token.contract_addr;
 
   return new MsgExecuteContract(walletAddress, tokenAddr, {
     send: {
@@ -118,7 +117,7 @@ export async function feeForMaxNativeToken(
   terraClient,
   { pair, walletAddress, intBalance }
 ) {
-  const denom = nativeTokenFromPair(pair.asset_infos).info.native_token.denom;
+  const denom = nativeTokenFromPair(pair.asset_infos).native_token.denom;
   const balanceCoin = new Coin(denom, intBalance);
   const balanceCoins = new Coins([balanceCoin]);
 

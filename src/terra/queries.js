@@ -1,25 +1,22 @@
-import { Int, Dec } from '@terra-money/terra.js';
+import { Dec, Int } from "@terra-money/terra.js";
 
 export async function getTokenInfo(terraClient, cw20ContractAddress) {
-  const info = await terraClient.wasm.contractQuery(
-    cw20ContractAddress,
-    {
-      token_info: {}
-    }
-  );
+  const info = await terraClient.wasm.contractQuery(cw20ContractAddress, {
+    token_info: {},
+  });
 
-  return info
+  return info;
 }
 
 export async function getLBPs(terraClient, factoryContractAddress) {
   const { pairs } = await terraClient.wasm.contractQuery(
     factoryContractAddress,
     {
-      pairs: {}
+      pairs: {},
     }
   );
 
-  return pairs
+  return pairs;
 }
 
 /**
@@ -36,19 +33,20 @@ export async function getLBPs(terraClient, factoryContractAddress) {
  * @param {object} offerAssetInfo
  * @returns {object} - Query response
  */
-export async function getSimulation(terraClient, pairAddress, amount, offerAssetInfo) {
-  const result = await terraClient.wasm.contractQuery(
-    pairAddress,
-    {
-      simulation: {
-        offer_asset: {
-          amount,
-          info: offerAssetInfo
-        },
-        block_time: Math.floor(Date.now() / 1000)
-      }
-    }
-  );
+export async function getSimulation(
+  terraClient,
+  pairAddress,
+  amount,
+  offerAssetInfo
+) {
+  const result = await terraClient.wasm.contractQuery(pairAddress, {
+    simulation: {
+      offer_asset: {
+        amount: amount.toString(),
+        info: offerAssetInfo,
+      },
+    },
+  });
 
   return result;
 }
@@ -68,20 +66,23 @@ export async function getSimulation(terraClient, pairAddress, amount, offerAsset
  * @param {object} askAssetInfo
  * @returns {object} - Query response
  */
-export async function getReverseSimulation(terraClient, pairAddress, amount, askAssetInfo) {
-  const result = await terraClient.wasm.contractQuery(
-    pairAddress,
-    {
-      reverse_simulation: {
-        ask_asset: {
-          amount,
-          info: askAssetInfo
-        },
-        block_time: Math.floor(Date.now() / 1000)
-      }
-    }
-  );
+export async function getReverseSimulation(
+  terraClient,
+  pairAddress,
+  amount,
+  askAssetInfo
+) {
+  const message = {
+    reverse_simulation: {
+      ask_asset: {
+        amount: amount.toString(),
+        info: askAssetInfo,
+      },
+    },
+  };
 
+  console.log(message);
+  const result = await terraClient.wasm.contractQuery(pairAddress, message);
   return result;
 }
 
@@ -93,23 +94,20 @@ export async function getWeights(terraClient, pairAddress, nativeToken) {
     new Int(0),
     {
       native_token: {
-        denom: nativeToken
-      }
+        denom: nativeToken,
+      },
     }
   );
 
-  return [new Dec(offer_weight), new Dec(ask_weight)]
+  return [new Dec(offer_weight), new Dec(ask_weight)];
 }
 
 export async function getPool(terraClient, pairAddress) {
-  const response = await terraClient.wasm.contractQuery(
-    pairAddress,
-    {
-      pool: {}
-    }
-  )
+  const response = await terraClient.wasm.contractQuery(pairAddress, {
+    pool: {},
+  });
 
-  return response
+  return response;
 }
 
 export async function getBalance(terraClient, denom, address) {
@@ -117,26 +115,24 @@ export async function getBalance(terraClient, denom, address) {
   return response[0].get(denom)?.amount || new Int(0);
 }
 
-export async function getTokenBalance(terraClient, tokenAddress, walletAddress) {
-  const response = await terraClient.wasm.contractQuery(
-    tokenAddress,
-    {
-      balance: {
-        address: walletAddress
-      }
-    }
-  );
+export async function getTokenBalance(
+  terraClient,
+  tokenAddress,
+  walletAddress
+) {
+  const response = await terraClient.wasm.contractQuery(tokenAddress, {
+    balance: {
+      address: walletAddress,
+    },
+  });
 
   return new Int(response.balance);
 }
 
 export async function getPairInfo(terraClient, pairAddress) {
-  const response = await terraClient.wasm.contractQuery(
-    pairAddress,
-    {
-      pair: {}
-    }
-  );
+  const response = await terraClient.wasm.contractQuery(pairAddress, {
+    pair: {},
+  });
 
   return response;
 }
